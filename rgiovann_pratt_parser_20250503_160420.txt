@@ -1,0 +1,411 @@
+// FILE: src/main/java/parser/prat_parser/App.java
+// PACKAGE: parser.prat_parser
+// DECLARATION: class App
+
+package parser.prat_parser;
+import parser.prat_parser.lexer.Lexer;
+import parser.prat_parser.lexer.LexerFactory;
+import parser.prat_parser.model.Expression;
+public class App {
+	public static void main(String[] args) {
+		String input ="4+3*5 + 4/6 - (3+4)*7";
+		PrattParser parser = new PrattParser(LexerFactory.createDefaultLexer(input));
+		Expression parsed = parser.parse();
+		System.out.println("INPUT : " + input);
+		System.out.println("OUTPUT : " + parsed.toString());
+	}
+}
+
+// END_OF_FILE
+
+// FILE: src/main/java/parser/prat_parser/PrattParser.java
+// PACKAGE: parser.prat_parser
+// DECLARATION: class PrattParser
+
+package parser.prat_parser;
+import java.util.List;
+import parser.prat_parser.lexer.Lexer;
+import parser.prat_parser.model.Atom;
+import parser.prat_parser.model.BindingPower;
+import parser.prat_parser.model.Cons;
+import parser.prat_parser.model.Expression;
+import parser.prat_parser.model.Token;
+import parser.prat_parser.model.TokenType;
+public class PrattParser {
+    private int tokenIndex;
+    private final List<Token> tokens;
+    public PrattParser(Lexer lexer) {
+        this.tokens = lexer.tokenize();
+        this.tokenIndex = 0;
+    }
+    private Token nextToken() {
+        return tokenIndex < tokens.size() ? tokens.get(tokenIndex++) : new Token(TokenType.EOF, "");
+    }
+    private Token peekToken() {
+        return tokenIndex < tokens.size() ? tokens.get(tokenIndex) : new Token(TokenType.EOF, "");
+    }
+    public Expression parseExpression(int minBp) {
+        Expression lhs;
+        Token token = nextToken();
+        if (token.type() == TokenType.NUMBER || token.type() == TokenType.VARIABLE) {
+            lhs = new Atom(token.value());
+        } else if (token.type() == TokenType.OPERATOR && token.value().matches("[+-]")) {
+            int rBp = prefixBindingPower(token.value().charAt(0));
+            Expression rhs = parseExpression(rBp);
+            lhs = new Cons(token.value(), List.of(rhs));
+        } else if (token.type() == TokenType.LPAREN) {
+            lhs = parseExpression(0);
+            Token next = nextToken();
+            if (next.type() != TokenType.RPAREN) {
+                throw new IllegalStateException("Expected ')', found: " + next);
+            }
+        } else {
+            throw new IllegalStateException("Bad token: " + token);
+        }
+        while (true) {
+            Token opToken = peekToken();
+            if (opToken.type() == TokenType.EOF) {
+                break;
+            }
+            if (opToken.type() != TokenType.OPERATOR && opToken.type() != TokenType.LBRACKET) {
+                break;
+            }
+            char op = opToken.value().charAt(0);
+            Integer postfixBp = postfixBindingPower(op);
+            if (postfixBp != null) {
+                if (postfixBp < minBp) {
+                    break;
+                }
+                nextToken();
+                if (op == '[') {
+                    Expression rhs = parseExpression(0);
+                    Token next = nextToken();
+                    if (next.type() != TokenType.RBRACKET) {
+                        throw new IllegalStateException("Expected ']', found: " + next);
+                    }
+                    lhs = new Cons(String.valueOf(op), List.of(lhs, rhs));
+                } else {
+                    lhs = new Cons(String.valueOf(op), List.of(lhs));
+                }
+                continue;
+            }
+            BindingPower bp = infixBindingPower(op);
+            if (bp == null) {
+                break;
+            }
+            int lBp = bp.left();
+            int rBp = bp.right();
+            if (lBp < minBp) {
+                break;
+            }
+            nextToken();
+            if (op == '?') {
+                Expression mhs = parseExpression(0);
+                Token next = nextToken();
+                if (next.type() != TokenType.OPERATOR || !next.value().equals(":")) {
+                    throw new IllegalStateException("Expected ':', found: " + next);
+                }
+                Expression rhs = parseExpression(rBp);
+                lhs = new Cons(String.valueOf(op), List.of(lhs, mhs, rhs));
+            } else {
+                Expression rhs = parseExpression(rBp);
+                lhs = new Cons(String.valueOf(op), List.of(lhs, rhs));
+            }
+        }
+        return lhs;
+    }
+    public Expression parse() {
+        return parseExpression(0);
+    }
+    private int prefixBindingPower(char op) {
+        return switch (op) {
+            case '+', '-' -> BindingPower.PREFIX_PLUS_MINUS.right();
+            default -> throw new IllegalArgumentException("Bad prefix operator: " + op);
+        };
+    }
+    private Integer postfixBindingPower(char op) {
+        return switch (op) {
+            case '!', '[' -> BindingPower.POSTFIX_EXCL_BRACKET.left();
+            default -> null;
+        };
+    }
+    private BindingPower infixBindingPower(char op) {
+        return switch (op) {
+            case '=' -> BindingPower.INFIX_ASSIGN;
+            case '?' -> BindingPower.INFIX_TERNARY;
+            case '+', '-' -> BindingPower.INFIX_ADD_SUB;
+            case '*', '/' -> BindingPower.INFIX_MUL_DIV;
+            case '.' -> BindingPower.INFIX_DOT;
+            default -> null;
+        };
+    }
+}
+
+// END_OF_FILE
+
+// FILE: src/main/java/parser/prat_parser/lexer/Lexer.java
+// PACKAGE: parser.prat_parser.lexer
+// DECLARATION: class Lexer
+
+package parser.prat_parser.lexer;
+import parser.prat_parser.model.Token;
+import parser.prat_parser.model.TokenType;
+import java.util.ArrayList;
+import java.util.List;
+public class Lexer implements LexerState {
+	private final String input;
+	private final List<Rule> rules;
+	private int position;
+	private char currentChar;
+	public Lexer(String input, List<Rule> rules) {
+		this.input = input;
+		this.rules = new ArrayList<>(rules);
+		this.position = 0;
+		this.currentChar = input.isEmpty() ? '\0' : input.charAt(0);
+	}
+	public List<Token> tokenize() {
+		var tokens = new ArrayList<Token>();
+		while (currentChar != '\0') {
+			boolean matched = false;
+			for (var rule : rules) {
+				if (rule.appliesTo(currentChar)) {
+					var token = rule.apply(this);
+					if (token != null) {
+						tokens.add(token);
+					}
+					matched = true;
+					break;
+				}
+			}
+			if (!matched) {
+				throw new IllegalStateException("No rule matched for character: " + currentChar);
+			}
+		}
+		tokens.add(new Token(TokenType.EOF, ""));
+		return tokens;
+	}
+	@Override
+	public char getCurrentChar() {
+		return currentChar;
+	}
+	@Override
+	public void advance() {
+		position++;
+		currentChar = position < input.length() ? input.charAt(position) : '\0';
+	}
+	@Override
+	public boolean hasNextChar() {
+		return currentChar != '\0';
+	}
+	@Override
+	public void skipWhitespace() {
+		while (hasNextChar() && Character.isWhitespace(getCurrentChar())) {
+			advance();
+		}
+	}
+	public String getInput() {
+		return input;
+	}
+	public int getPosition() {
+		return position;
+	}
+	public void printTokens() {
+		List<Token> tokens = tokenize();
+		tokens.forEach(System.out::println);
+	}
+}
+
+// END_OF_FILE
+
+// FILE: src/main/java/parser/prat_parser/lexer/LexerFactory.java
+// PACKAGE: parser.prat_parser.lexer
+// DECLARATION: class LexerFactory
+
+package parser.prat_parser.lexer;
+import parser.prat_parser.model.Token;
+import parser.prat_parser.model.TokenType;
+import java.util.List;
+public class LexerFactory {
+	public static Lexer createDefaultLexer(String input) {
+		var rules = List.of(new Rule(Character::isWhitespace, state -> {
+			state.skipWhitespace();
+			return null;
+		}), new Rule(Character::isDigit, state -> {
+			var number = new StringBuilder();
+			while (state.hasNextChar() && Character.isDigit(state.getCurrentChar())) {
+				number.append(state.getCurrentChar());
+				state.advance();
+			}
+			return new Token(TokenType.NUMBER, number.toString());
+		}), new Rule(Character::isLetter, state -> {
+			var variable = new StringBuilder();
+			while (state.hasNextChar() && Character.isLetter(state.getCurrentChar())) {
+				variable.append(state.getCurrentChar());
+				state.advance();
+			}
+			return new Token(TokenType.VARIABLE, variable.toString());
+		}), new Rule(c -> "+-*/.!:=?:".contains(String.valueOf(c)), state -> {
+			var op = String.valueOf(state.getCurrentChar());
+			state.advance();
+			return new Token(TokenType.OPERATOR, op);
+		}), new Rule(c -> c == '(', state -> {
+			state.advance();
+			return new Token(TokenType.LPAREN, "(");
+		}), new Rule(c -> c == ')', state -> {
+			state.advance();
+			return new Token(TokenType.RPAREN, ")");
+		}), new Rule(c -> c == '[', state -> {
+			state.advance();
+			return new Token(TokenType.LBRACKET, "[");
+		}), new Rule(c -> c == ']', state -> {
+			state.advance();
+			return new Token(TokenType.RBRACKET, "]");
+		}));
+		return new Lexer(input, rules);
+	}
+}
+
+// END_OF_FILE
+
+// FILE: src/main/java/parser/prat_parser/lexer/LexerState.java
+// PACKAGE: parser.prat_parser.lexer
+// DECLARATION: interface LexerState
+
+package parser.prat_parser.lexer;
+public interface LexerState {
+	char getCurrentChar();
+	void advance();
+	boolean hasNextChar();
+	void skipWhitespace();
+}
+
+// END_OF_FILE
+
+// FILE: src/main/java/parser/prat_parser/lexer/Rule.java
+// PACKAGE: parser.prat_parser.lexer
+// DECLARATION: record Rule
+
+package parser.prat_parser.lexer;
+import parser.prat_parser.model.Token;
+import java.util.function.Predicate;
+import java.util.function.Function;
+public record Rule(Predicate<Character> condition, Function<LexerState, Token> action) {
+	public boolean appliesTo(char c) {
+		return condition.test(c);
+	}
+	public Token apply(LexerState state) {
+		return action.apply(state);
+	}
+}
+
+// END_OF_FILE
+
+// FILE: src/main/java/parser/prat_parser/model/Atom.java
+// PACKAGE: parser.prat_parser.model
+// DECLARATION: record Atom
+
+package parser.prat_parser.model;
+public record Atom(String value) implements Expression {
+    @Override
+    public String toString() {
+        return value;
+    }
+}
+
+// END_OF_FILE
+
+// FILE: src/main/java/parser/prat_parser/model/BindingPower.java
+// PACKAGE: parser.prat_parser.model
+// DECLARATION: enum BindingPower
+
+package parser.prat_parser.model;
+public enum BindingPower {
+	PREFIX_PLUS_MINUS(9),
+	POSTFIX_EXCL_BRACKET(11),
+	INFIX_ASSIGN(2, 1), INFIX_TERNARY(4, 3), INFIX_ADD_SUB(5, 6), INFIX_MUL_DIV(7, 8), INFIX_DOT(14, 13);
+	private final int left;
+	private final int right;
+	BindingPower(int bp) {
+		this.left = bp;
+		this.right = bp;
+	}
+	BindingPower(int left, int right) {
+		this.left = left;
+		this.right = right;
+	}
+	public int left() {
+		return left;
+	}
+	public int right() {
+		return right;
+	}
+}
+
+// END_OF_FILE
+
+// FILE: src/main/java/parser/prat_parser/model/Cons.java
+// PACKAGE: parser.prat_parser.model
+// DECLARATION: record Cons
+
+package parser.prat_parser.model;
+import java.util.List;
+import java.util.stream.Collectors;
+public record Cons(String operator, List<Expression> operands) implements Expression {
+    @Override
+    public String toString() {
+        if (operands.isEmpty()) {
+            return operator;
+        }
+        return "(" + operator + " " +
+        operands.stream()
+                .map(Object::toString)
+                .collect(Collectors.joining(" ")) +
+        ")";
+    }
+}
+
+// END_OF_FILE
+
+// FILE: src/main/java/parser/prat_parser/model/Expression.java
+// PACKAGE: parser.prat_parser.model
+// DECLARATION: interface Expression
+
+package parser.prat_parser.model;
+public sealed interface Expression permits Atom, Cons {
+}
+
+// END_OF_FILE
+
+// FILE: src/main/java/parser/prat_parser/model/Token.java
+// PACKAGE: parser.prat_parser.model
+// DECLARATION: record Token
+
+package parser.prat_parser.model;
+public record Token(TokenType type, String value) {
+    @Override
+    public String toString() {
+        return type == TokenType.EOF ? "EOF" : String.format("%s(%s)", type, value);
+    }
+}
+
+// END_OF_FILE
+
+// FILE: src/main/java/parser/prat_parser/model/TokenType.java
+// PACKAGE: parser.prat_parser.model
+// DECLARATION: enum TokenType
+
+package parser.prat_parser.model;
+public enum TokenType {
+    NUMBER,
+    VARIABLE,
+    OPERATOR,
+    LPAREN,
+    RPAREN,
+    LBRACKET,
+    RBRACKET,
+    EOF,
+    UNKNOWN
+}
+
+// END_OF_FILE
+
