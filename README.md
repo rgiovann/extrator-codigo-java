@@ -24,7 +24,7 @@ O programa:
 
 4. Baixa os arquivos `.java` diretamente do repositório (formato raw)
 
-5. Remove os comentários de linha e bloco
+5. Remove os comentários de bloco
 
 6. Extrai o tipo e nome da declaração principal do arquivo
 
