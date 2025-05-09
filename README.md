@@ -101,3 +101,32 @@ O projeto segue boas práticas de programação orientada a objetos, com ênfase
 
 O código usa a API moderna do Java (`HttpClient`, `Files`, `Path`) para eficiência e robustez, com tratamento adequado de erros e recursos (ex.: fechamento automático com try-with-resources).
 
+## Utilidade do JavaFilesExtractor
+
+O `JavaFilesExtractor` é uma ferramenta projetada para normalizar o código-fonte de projetos Java hospedados no GitHub, facilitando seu uso por inteligências artificiais (IAs) em tarefas como análise de código, geração de documentação, refatoração ou respostas a perguntas técnicas. Ele baixa todos os arquivos `.java` do branch padrão de um repositório público, remove blocos de comentários `/* */`, adiciona metadados (como `// FILE:`, `// PACKAGE:` e `// DECLARATION:`) e concatena tudo em um único arquivo de texto. Essa normalização reduz ruído (ex.: comentários irrelevantes) e estrutura o código de forma consistente, tornando-o mais fácil de processar por IAs.
+
+### Adequação para Projetos Pequenos e Médios
+
+O `JavaFilesExtractor` é ideal para projetos Java de tamanho pequeno a médio, com até ~4.000 linhas de código ou ~20.000 tokens. Tokens são unidades de texto processadas por IAs, onde ~4-5 caracteres correspondem a um token em código Java (ex.: `public class` pode ser ~2-3 tokens). A maioria das IAs modernas suporta contextos de:
+
+- **Grok 3** (xAI): Até ~128.000 tokens.
+- **GPT-4** (OpenAI): Até ~32.000 ou 128.000 tokens, dependendo da variante.
+- **Claude** (Anthropic): Até ~200.000 tokens.
+
+Para respostas precisas, recomendamos fornecer arquivos com **10.000 a 20.000 tokens**, reservando espaço para perguntas e respostas da IA. Projetos nessa faixa, como o `rgiovann/ds-catalog`, são bem processados sem sobrecarregar o modelo.
+
+### Exemplo: Repositório `rgiovann/ds-catalog`
+
+O repositório público [`rgiovann/ds-catalog`](https://github.com/rgiovann/ds-catalog) é um exemplo prático. O arquivo gerado pelo `JavaFilesExtractor` para este projeto contém:
+
+- **~85.257 caracteres** (excluindo espaços, tabulações e quebras de linha).
+- **~21.300 tokens** (média de ~4 caracteres por token).
+- **~2.500 linhas totais**, com ~2.125 linhas não vazias.
+
+Com ~21.300 tokens, o arquivo está no limite superior para projetos médios e pode ser processado por IAs como Grok 3 ou GPT-4. Para tarefas específicas (ex.: analisar apenas a classe `ProductService`), recomendamos extrair trechos menores (ex.: ~5.000-10.000 tokens) para maior precisão.
+
+### Observação para Projetos Grandes
+
+Para projetos muito grandes, com mais de ~4.000 linhas ou ~20.000 tokens, o arquivo gerado pode exceder os limites de contexto de algumas IAs ou reduzir a qualidade das respostas devido à diluição do foco. Nesses casos, sugere-se o split manual do arquivo gerado em arquivos menores.
+
+Em uma versão futura desse extrator, planeja-se informar ao usuário a opção de gerar os arquivos normalizados por pacote.
