@@ -109,18 +109,3 @@ O projeto segue boas práticas de programação orientada a objetos, com ênfase
 
 O código usa a API moderna do Java (`HttpClient`, `Files`, `Path`) para eficiência e robustez, com tratamento adequado de erros e recursos (ex.: fechamento automático com try-with-resources).
 
-## Contribuindo
-
-Contribuições são bem-vindas! Para contribuir:
-
-1. Faça um fork do repositório.
-2. Crie uma branch para sua feature (`git checkout -b feature/nova-funcionalidade`).
-3. Commit suas alterações (`git commit -m 'Adiciona nova funcionalidade'`).
-4. Envie para o repositório remoto (`git push origin feature/nova-funcionalidade`).
-5. Abra um Pull Request.
-
-Por favor, siga as convenções de código do projeto e adicione testes para novas funcionalidades.
-
-## Licença
-
-Este projeto está licenciado sob a [MIT License](LICENSE). Veja o arquivo `LICENSE` para mais detalhes.
