@@ -24,13 +24,13 @@ O objetivo principal do **JavaFilesExtractor** é extrair código-fonte Java de 
 - **Java 11 ou superior**: O projeto usa a API `HttpClient` e outras funcionalidades modernas.
 - **Dependências**:
   - [Jackson Databind](https://github.com/FasterXML/jackson-databind) para parsing de JSON.
-  - Inclua no seu projeto via Maven ou Gradle:
+  - Inclua no seu arquivo pom.xml (Maven):
 
 ```xml
 <dependency>
     <groupId>com.fasterxml.jackson.core</groupId>
     <artifactId>jackson-databind</artifactId>
-    <version>2.15.2</version>
+    <version>2.16.0</version>
 </dependency>
 ```
 
