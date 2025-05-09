@@ -1,110 +1,96 @@
-# Extrator de Código Java de Repositórios GitHub
+JavaFilesExtractor
+O JavaFilesExtractor é uma ferramenta em Java que extrai todos os arquivos .java de um repositório GitHub, concatenando-os em um único arquivo de texto com metadados e sem blocos de comentários /* */. Ideal para análise de código, auditoria ou geração de documentação de projetos Java, especialmente em contextos que envolvem processamento por algoritmos de inteligência artificial.
+Objetivo
+O objetivo principal do JavaFilesExtractor é extrair código-fonte Java de repositórios GitHub e normalizá-lo para reduzir o ruído na entrada de algoritmos de Large Language Models (LLMs). Ao remover blocos de comentários /* */ e estruturar o código com metadados claros (nome do arquivo, pacote e declaração), o projeto facilita o uso do código em tarefas como análise automatizada, geração de documentação ou treinamento de modelos de IA, garantindo uma entrada mais limpa e padronizada.
+Funcionalidades
 
-Este projeto tem como objetivo facilitar a **análise de código-fonte Java por IAs**, extraindo automaticamente os arquivos `.java` relevantes de um repositório GitHub, removendo comentários e consolidando informações úteis como pacotes e declarações principais.
+Download Automático: Baixa o ZIP da branch padrão de um repositório GitHub.
+Extração de Arquivos: Descompacta o ZIP e identifica todos os arquivos .java.
+Concatenação com Metadados: Gera um arquivo de texto contendo:
+Nome do arquivo (// FILE: NomeDoArquivo.java).
+Pacote declarado (// PACKAGE: nome.do.pacote ou (default)).
+Declaração principal (// DECLARATION: class Nome ou similar).
+Código-fonte sem blocos de comentários /* */.
+Marca de fim (// END_OF_FILE).
 
-## Objetivo
 
-O propósito é simplificar a leitura e a compreensão do código por ferramentas de inteligência artificial, consolidando trechos limpos, estruturados e identificáveis por metadados como:
+Limpeza de Comentários: Remove blocos de comentários /* */, preservando comentários de linha //.
+Gerenciamento de Recursos: Exclui arquivos temporários (ZIP e diretórios) após o uso.
 
-* Caminho do arquivo
+Pré-requisitos
 
-* Nome do pacote
+Java 11 ou superior: O projeto usa a API HttpClient e outras funcionalidades modernas.
+Dependências:
+Jackson Databind para parsing de JSON.
+Inclua no seu projeto via Maven ou Gradle:
 
-* Tipo de declaração principal (classe, interface, enum etc.)
 
-## Como funciona
 
-O programa:
+<dependency>
+    <groupId>com.fasterxml.jackson.core</groupId>
+    <artifactId>jackson-databind</artifactId>
+    <version>2.15.2</version>
+</dependency>
 
-1. Solicita ao usuário o repositório GitHub (formato: `usuario/repositorio`)
+Como Usar
 
-2. Usa a [API REST do GitHub](https://docs.github.com/en/rest/git/trees?apiVersion=2022-11-28) para obter a árvore de arquivos da branch `main`
+Clone o Repositório:
+git clone https://github.com/seu-usuario/java-files-extractor.git
+cd java-files-extractor
 
-3. Filtra apenas os arquivos `.java` localizados em diretórios que contenham `src/`, ignorando pastas de teste
 
-4. Baixa os arquivos `.java` diretamente do repositório (formato raw)
+Compile o Projeto:Certifique-se de que o Jackson Databind está no classpath. Compile com:
+javac -cp .;lib/jackson-databind-2.15.2.jar src/main/java/*.java
 
-5. Remove os comentários de bloco
 
-6. Extrai o tipo e nome da declaração principal do arquivo
+Execute o Programa:
+java -cp .;lib/jackson-databind-2.15.2.jar JavaFilesExtractor
 
-7. Tenta inferir o nome do pacote com base no caminho
 
-8. Escreve o conteúdo limpo e anotado em um único arquivo de saída `.txt`, nomeado com base no repositório e na data/hora da execução
+Insira o Repositório:Quando solicitado, digite o repositório no formato usuario/repositorio (ex.: rgiovann/pratt_parser).
 
-***
+Saída:Um arquivo de texto (ex.: usuario_repositorio_timestamp.txt) será gerado no diretório atual, contendo todos os arquivos .java concatenados com metadados.
 
-## Exemplo de saída
 
-```text
-// FILE: src/main/java/com/exemplo/Exemplo.java
-// PACKAGE: com.exemplo
-// DECLARATION: class Exemplo
+Exemplo de Saída
+Para um arquivo App.java no repositório rgiovann/pratt_parser:
 
-public class Exemplo {
-    public void executar() {
-        System.out.println("Executando...");
+package parser.prat_parser;
+
+public class App {
+    public static void main(String[] args) {
+        String input = "4+3*5 + 4/6 - (3+4)*7";
+        PrattParser parser = new PrattParser(LexerFactory.createDefaultLexer(input));
+        Expression parsed = parser.parse();
+        System.out.println("INPUT : " + input);
+        System.out.println("OUTPUT : " + parsed.toString());
     }
 }
 
+O arquivo de saída (rgiovann_pratt_parser_20250509_123456.txt) conterá:
+// FILE: App.java
+// PACKAGE: parser.prat_parser
+// DECLARATION: class App
+
+package parser.prat_parser;
+
+public class App {
+    public static void main(String[] args) {
+        String input = "4+3*5 + 4/6 - (3+4)*7";
+        PrattParser parser = new PrattParser(LexerFactory.createDefaultLexer(input));
+        Expression parsed = parser.parse();
+        System.out.println("INPUT : " + input);
+        System.out.println("OUTPUT : " + parsed.toString());
+    }
+}
 // END_OF_FILE
-```
 
-***
+Estrutura do Código
+O projeto segue boas práticas de programação orientada a objetos, com ênfase nos princípios SOLID, KISS e DRY:
 
-## Pré-requisitos
+Single Responsibility Principle (SRP): Cada método tem uma única responsabilidade (ex.: extractPackageName extrai o pacote, removeComments remove blocos de comentários).
+Open/Closed Principle (OCP): A lógica é extensível, permitindo adicionar novas funcionalidades (ex.: novas tags) sem modificar o núcleo.
+Keep It Simple, Stupid (KISS): Soluções simples, como regex para parsing de pacotes e comentários, evitam complexidade desnecessária.
+Don't Repeat Yourself (DRY): Funções reutilizáveis (ex.: extractDeclaration) evitam duplicação de código.
 
-* **Java 21** instalado e configurado\
-  O projeto utiliza recursos modernos da plataforma Java, incluindo:
-
-  * `java.net.http.HttpClient` (API de cliente HTTP assíncrono)
-
-  * `java.nio.file.Files` e `Paths` para manipulação de arquivos
-
-  * `java.time.LocalDateTime` para geração de timestamp
-
-  * `Pattern` e `Matcher` para expressões regulares
-
-  * Leitura JSON com [Jackson Databind](https://github.com/FasterXML/jackson-databind)
-
-***
-
-## Estrutura dos arquivos
-
-### `GitHubJavaFileFetcherComNormalizacao.java`
-
-Classe principal que executa todo o processo, desde a requisição à API do GitHub até a gravação dos arquivos extraídos. Responsável por:
-
-* Buscar os arquivos `.java`
-
-* Baixar o conteúdo original bruto (raw)
-
-* Remover comentários
-
-* Extrair declaração principal e nome do pacote
-
-* Escrever o conteúdo limpo em um arquivo consolidado
-
-***
-
-## Compilação e execução
-
-1. Clone o repositório:
-
-   ```bash
-   git clone https://github.com/rgiovann/extrator-codigo-java.git
-   cd extrator-codigo-java
-   ```
-
-2. Compile o código:
-
-   ```bash
-   javac -cp "libs/*" github/exporter/GitHubJavaFileFetcherComNormalizacao.java
-   ```
-
-3. Execute:
-
-   ```bash
-   java -cp ".:libs/*" github.exporter.GitHubJavaFileFetcherComNormalizacao
-   ```
-
+O código usa a API moderna do Java (HttpClient, Files, Path) para eficiência e robustez, com tratamento adequado de erros e recursos (ex.: fechamento automático com try-with-resources).
