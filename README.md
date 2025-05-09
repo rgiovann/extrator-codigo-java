@@ -101,10 +101,6 @@ O projeto segue boas práticas de programação orientada a objetos, com ênfase
 
 O código usa a API moderna do Java (`HttpClient`, `Files`, `Path`) para eficiência e robustez, com tratamento adequado de erros e recursos (ex.: fechamento automático com try-with-resources).
 
-## Utilidade do JavaFilesExtractor
-
-O `JavaFilesExtractor` é uma ferramenta projetada para normalizar o código-fonte de projetos Java hospedados no GitHub, facilitando seu uso por inteligências artificiais (IAs) em tarefas como análise de código, geração de documentação, refatoração ou respostas a perguntas técnicas. Ele baixa todos os arquivos `.java` do branch padrão de um repositório público, remove blocos de comentários `/* */`, adiciona metadados (como `// FILE:`, `// PACKAGE:` e `// DECLARATION:`) e concatena tudo em um único arquivo de texto. Essa normalização reduz ruído (ex.: comentários irrelevantes) e estrutura o código de forma consistente, tornando-o mais fácil de processar por IAs.
-
 ### Adequação para Projetos Pequenos e Médios
 
 O `JavaFilesExtractor` é ideal para projetos Java de tamanho pequeno a médio, com até ~4.000 linhas de código ou ~20.000 tokens. Tokens são unidades de texto processadas por IAs, onde ~4-5 caracteres correspondem a um token em código Java (ex.: `public class` pode ser ~2-3 tokens). A maioria das IAs modernas suporta contextos de:
