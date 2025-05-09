@@ -41,16 +41,14 @@ O objetivo principal do **JavaFilesExtractor** é extrair código-fonte Java de 
    git clone https://github.com/seu-usuario/java-files-extractor.git
    cd java-files-extractor
    ```
-
+   
 2. **Importe e compile/rode o projeto (usa Maven) na sua IDE de preferencia**:
-   Certifique-se de que o Jackson Databind está no classpath. Compile com:
-   ```bash
-   javac -cp .;lib/jackson-databind-2.15.2.jar src/main/java/*.java
-   ```
-3. **Insira o Repositório**:
+   Certifique-se de que a dependência Jackson Databind foi carregada pela IDE
+   
+4. **Insira o Repositório**:
    Quando solicitado, digite o repositório no formato `usuario/repositorio` (ex.: `rgiovann/pratt_parser`).
 
-4. **Saída**:
+5. **Saída**:
    Um arquivo de texto (ex.: `usuario_repositorio_timestamp.txt`) será gerado no diretório atual, contendo todos os arquivos `.java` concatenados com metadados.
 
 ## Exemplo de Saída
