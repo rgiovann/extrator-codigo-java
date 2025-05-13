@@ -126,3 +126,7 @@ Com ~21.300 tokens, o arquivo está no limite superior para projetos médios e p
 Para projetos muito grandes, com mais de ~4.000 linhas ou ~20.000 tokens, o arquivo gerado pode exceder os limites de contexto de algumas IAs ou reduzir a qualidade das respostas devido à diluição do foco. Nesses casos, sugere-se o split manual do arquivo gerado em arquivos menores.
 
 Em uma versão futura desse extrator, planeja-se informar ao usuário a opção de gerar os arquivos normalizados por pacote.
+
+### Documentação
+
+O arquivo **passo_a_passo_java_extrator.pdf** descreve em detalhes o funcionamento do extrator.
